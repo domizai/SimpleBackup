@@ -20,7 +20,7 @@
  * Boston, MA 02111-1307 USA
  *
  * @author Dominique Schmitz http://domizai.com
- * @modified 02.02.2025
+ * @modified 08.02.2025
  * @version 0.0.1 (1)
  */
 
@@ -61,6 +61,7 @@ public class SimpleBackup {
     private Set<SketchPath> filesToCopy = new HashSet<>(); 
     private Set<SketchPath> filesToIgnore = new HashSet<>(); 
     private SketchPath dest;
+    private boolean reminded = true;
 
     /**
      * Constructor, usually called in the setup() method in your sketch to
@@ -72,7 +73,6 @@ public class SimpleBackup {
         sketchPath = Path.of(applet.sketchPath());
         separator = FileSystems.getDefault().getSeparator();
         dest = new SketchPath(Paths.get(DEFAULT_DEST));
-        printVerbose("Remember to save your files before backing up.");
     }
 
     /**
@@ -86,6 +86,11 @@ public class SimpleBackup {
         filesToCopy = filterSpecificFiles(filesToCopy);
         filesToCopy = filterFilesToIgnore(filesToCopy);
         filesToCopy = filterFilesFromDestination(filesToCopy);
+
+        if (!reminded) {
+            printVerbose("Remember to save your sketch before backing up.");
+            reminded = true;
+        }
         return this;
     }
 
@@ -160,9 +165,8 @@ public class SimpleBackup {
             return false;
         }
 
-        SketchPath dest = new SketchPath(this.dest.relative.resolve(subDirPath.relative));
-        
         // Create destination directory if it doesn't exist
+        SketchPath dest = new SketchPath(this.dest.relative.resolve(subDirPath.relative));
         if (!Files.exists(dest.absolute)) {
             try {
                 Files.createDirectories(dest.absolute);

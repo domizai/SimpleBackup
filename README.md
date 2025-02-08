@@ -52,4 +52,8 @@ backup.backupNow();
 backup.backupNow(SimpleBackup.currentDateAndTime("yy-MM-dd_HH-mm-ss"));
 ```
 
+Just remember to save your sketch before backing up.
+
+---
+
 Tested with Processing 4.3.2 (1295) on macOS 14.3.1 (Sonoma) Intel.
