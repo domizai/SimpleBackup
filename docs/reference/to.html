@@ -602,7 +602,9 @@ Set the destination directory.</p>
 <p><strong>Returns:</strong></p>
 <p><code>this</code> object (allows for method chaining).</p>
 <h2 id="example">Example</h2>
-<div class="language-java highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">backup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">SimpleBackup</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="na">to</span><span class="p">(</span><span class="s">&quot;project_backup&quot;</span><span class="p">);</span>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">backup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">SimpleBackup</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">)</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="p">.</span><span class="na">to</span><span class="p">(</span><span class="s">&quot;project_backup&quot;</span><span class="p">);</span>
 </span></code></pre></div>
 <hr />
 <p>For more information, see the <code>reference</code> documentation folder in the <a href="https://github.com/domizai/SimpleBackup">SimpleBackup</a> repository.</p>

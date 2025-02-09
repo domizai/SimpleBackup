@@ -16,7 +16,9 @@ backupDir - The destination directory.
 ## Example
 
 ```java
-backup = new SimpleBackup(this).to("project_backup");
+backup = new SimpleBackup(this)
+    .copy("/")
+    .to("project_backup");
 ```
 
 ---

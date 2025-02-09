@@ -8,8 +8,8 @@ void setup() {
     .copy("/")
     // Alternatively, list specific files or directories to copy.
     .copy("advanced.pde", "data", "dir/to/file.ttf")
-    // Ignore specific files or directories within the copied directories.
-    .ignore("data/image.jpg", "dir/to/ignore")
+    // Omit specific files or directories within the copied directories.
+    .omit("data/image.jpg", "dir/to/omit")
     // Specify the backup folder. Default is "simplebackup".
     .to("backup")
     // Enable or disable verbose mode (default is true).
