@@ -52,7 +52,7 @@ public class SimpleBackup {
     public final static String DEFAULT_DATE_PATTERN = "yyMMddHHmmss";
     /** The default size limit in bytes is {@value #DEFAULT_SIZE_LIMIT} */
     public final static long DEFAULT_SIZE_LIMIT = 100_000; // bytes
-    /** Files that are ignored by default */
+    /** Files that are ignored by default are ".DS_Store" and ".ini" */
     public final static Set<String> DEFAULT_IGNORE = Set.of(".DS_Store", ".ini");
 
     private final String separator = FileSystems.getDefault().getSeparator();
@@ -79,7 +79,7 @@ public class SimpleBackup {
      * Add files or directories to copy.
      * 
      * @param paths A list of files or directories to copy.
-     * @return {@code this} object (allows method chaining).
+     * @return {@code this} object (allows for method chaining).
      */
     public SimpleBackup copy(List<String> paths) {
         if (!reminded) {
@@ -94,7 +94,7 @@ public class SimpleBackup {
      * Add files or directories to copy.
      * 
      * @param paths A list of files or directories to copy.
-     * @return {@code this} object (allows method chaining).
+     * @return {@code this} object (allows for method chaining).
      */
     public SimpleBackup copy(String... paths) {
         copy(List.of(paths));
@@ -105,7 +105,7 @@ public class SimpleBackup {
      * Set the destination directory.
      * 
      * @param backupDir The destination directory.
-     * @return {@code this} object (allows method chaining).
+     * @return {@code this} object (allows for method chaining).
      */
     public SimpleBackup to(String backupDir) {
         try {
@@ -125,7 +125,7 @@ public class SimpleBackup {
      * Add files or directories to omit and prevent them from being copied.
      * 
      * @param paths A list of files or directories to omit.
-     * @return {@code this} object (allows method chaining).
+     * @return {@code this} object (allows for method chaining).
      */
     public SimpleBackup omit(List<String> paths) {
         omittedFiles.addAll(walk(paths));
@@ -136,7 +136,7 @@ public class SimpleBackup {
      * Add files or directories to omit and prevent them from being copied.
      * 
      * @param paths A list of files or directories to omit.
-     * @return {@code this} object (allows method chaining).
+     * @return {@code this} object (allows for method chaining).
      */
     public SimpleBackup omit(String... paths) {
         omit(List.of(paths));
@@ -148,7 +148,7 @@ public class SimpleBackup {
      * If no destination directory is set using {@link #to(String backupDir)}, the files will be copied to {@value #DEFAULT_DEST}.
      * 
      * @param subDir The subdirectory in the destination directory.
-     * @return {@code true} if all files in the list were copied, false otherwise.
+     * @return {@code true} if all files in the list were copied, {@code false} otherwise.
      */
     public boolean backupNow(String subDir) {
         SketchPath subDirPath;
@@ -221,7 +221,7 @@ public class SimpleBackup {
      * If no destination directory is set using {@link #to(String backupDir)}, the files will be copied to {@value #DEFAULT_DEST}.
      * The subdirectory name follows the format {@value #DEFAULT_DATE_PATTERN} and is determined at backup time.
      * 
-     * @return {@code true} if all files in the list were copied, false otherwise.
+     * @return {@code true} if all files in the list were copied, {@code false} otherwise.
      */
     public boolean backupNow() {
         return backupNow(currentDateAndTime());
@@ -266,7 +266,7 @@ public class SimpleBackup {
      * This is a safety measure to prevent copying large files by accident.
      * 
      * @param sizelimit The size limit in bytes.
-     * @return {@code this} object (allows method chaining).
+     * @return {@code this} object (allows for method chaining).
      */
     public SimpleBackup sizelimit(long sizelimit) {
         this.sizelimit = sizelimit;
@@ -277,7 +277,7 @@ public class SimpleBackup {
      * Set the verbose flag. True by default.
      * 
      * @param verbose The verbose flag.
-     * @return {@code this} object (allows method chaining).
+     * @return {@code this} object (allows for method chaining).
      */
     public SimpleBackup verbose(boolean verbose) {
         this.verbose = verbose;
@@ -301,15 +301,6 @@ public class SimpleBackup {
      */
     public static String currentDateAndTime(String pattern) {
         return new SimpleDateFormat(pattern).format(new Date());
-    }
-
-    /**
-     * Return the version of the library.
-     *
-     * @return The version of the library.
-     */
-    public static String version() {
-        return VERSION;
     }
     
     /**

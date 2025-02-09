@@ -1,0 +1,40 @@
+site_name: SimpleBackup
+
+repo_url: https://github.com/domizai/SimpleBackup
+
+copyright: MIT Licence. 
+
+plugins:
+  - offline
+
+theme:
+  name: material
+  palette:
+    scheme: slate
+  features:
+    - navigation.footer
+
+markdown_extensions:
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences 
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+
+nav:
+  - Reference:
+    - copy: reference/copy.md
+    - to: reference/to.md
+    - omit: reference/omit.md
+    - backupNow: reference/backupNow.md
+    - getFiles: reference/getFiles.md
+    - getOmittedFiles: reference/getOmittedFiles.md
+    - getIgnoredFiles: reference/getIgnoredFiles.md
+    - sizelimit: reference/sizelimit.md
+    - verbose: reference/verbose.md
+    - currentDateAndTime: reference/currentDateAndTime.md
+    - getSize: reference/getSize.md
+  - Installation: installation.md
+
