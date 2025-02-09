@@ -20,7 +20,7 @@
  * Boston, MA 02111-1307 USA
  *
  * @author Dominique Schmitz http://domizai.com
- * @modified 08.02.2025
+ * @modified 09.02.2025
  * @version 0.0.1 (1)
  */
 
@@ -29,7 +29,6 @@ package ch.domizai.simplebackup;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.FileSystems;
 import java.util.HashSet;
 import java.util.List;
@@ -42,7 +41,7 @@ import processing.core.PApplet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Backup your project every time you make an export.
+ * SimpleBackup creates a backup of your project during runtime.
  */
 public class SimpleBackup {
     /** The version of the library is {@value #VERSION} */
@@ -53,15 +52,17 @@ public class SimpleBackup {
     public final static String DEFAULT_DATE_PATTERN = "yyMMddHHmmss";
     /** The default size limit in bytes is {@value #DEFAULT_SIZE_LIMIT} */
     public final static long DEFAULT_SIZE_LIMIT = 100_000; // bytes
+    /** Files that are ignored by default are {@value #DEFAULT_I} */
+    public final static Set<String> DEFAULT_IGNORE = Set.of(".DS_Store", ".ini");
 
+    private final String separator = FileSystems.getDefault().getSeparator();
     private final Path sketchPath;
-    private final String separator;
     private long sizelimit = DEFAULT_SIZE_LIMIT; 
     private boolean verbose = true;
-    private Set<SketchPath> filesToCopy = new HashSet<>(); 
-    private Set<SketchPath> filesToIgnore = new HashSet<>(); 
+    private boolean reminded = false;
     private SketchPath dest;
-    private boolean reminded = true;
+    private Set<SketchPath> walkedFiles = new HashSet<>(); 
+    private Set<SketchPath> omittedFiles = new HashSet<>(); 
 
     /**
      * Constructor, usually called in the setup() method in your sketch to
@@ -71,8 +72,7 @@ public class SimpleBackup {
      */
     public SimpleBackup(PApplet applet) {
         sketchPath = Path.of(applet.sketchPath());
-        separator = FileSystems.getDefault().getSeparator();
-        dest = new SketchPath(Paths.get(DEFAULT_DEST));
+        dest = new SketchPath(Path.of(DEFAULT_DEST));
     }
 
     /**
@@ -82,15 +82,11 @@ public class SimpleBackup {
      * @return {@code this} object (allows method chaining).
      */
     public SimpleBackup copy(List<String> paths) {
-        filesToCopy.addAll(walk(paths));
-        filesToCopy = filterSpecificFiles(filesToCopy);
-        filesToCopy = filterFilesToIgnore(filesToCopy);
-        filesToCopy = filterFilesFromDestination(filesToCopy);
-
         if (!reminded) {
             printVerbose("Remember to save your sketch before backing up.");
             reminded = true;
         }
+        walkedFiles.addAll(walk(paths));
         return this;
     }
 
@@ -112,34 +108,38 @@ public class SimpleBackup {
      * @return {@code this} object (allows method chaining).
      */
     public SimpleBackup to(String backupDir) {
-        dest = new SketchPath(relativize(backupDir));
-        if (dest.relative.getNameCount() == 0 || dest.relative.getName(0).toString().isEmpty()) {
-            throw new IllegalArgumentException("Destination directory is empty.");
+        try {
+            dest = makeSketchPath(backupDir, false);
+        } catch (IllegalArgumentException e) {
+            warning(e.getMessage());
+            return this;
         }
-        filesToCopy = filterFilesFromDestination(filesToCopy);
+        if (dest.relative.getNameCount() == 0 || dest.relative.getName(0).toString().isEmpty()) {
+            dest = new SketchPath(Path.of(DEFAULT_DEST));
+            warning("Empty destination directory name. Using default '" + DEFAULT_DEST + "'");
+        }
         return this;
     }
 
     /**
-     * Add files or directories to ignore.
+     * Add files or directories to omit and prevent them from being copied.
      * 
-     * @param paths A list of files or directories to ignore.
+     * @param paths A list of files or directories to omit.
      * @return {@code this} object (allows method chaining).
      */
-    public SimpleBackup ignore(List<String> paths) {
-        filesToIgnore.addAll(walk(paths));
-        filesToCopy = filterFilesToIgnore(filesToCopy);
+    public SimpleBackup omit(List<String> paths) {
+        omittedFiles.addAll(walk(paths));
         return this;
     }
 
     /**
-     * Add files or directories to ignore.
+     * Add files or directories to omit and prevent them from being copied.
      * 
-     * @param paths A list of files or directories to ignore.
+     * @param paths A list of files or directories to omit.
      * @return {@code this} object (allows method chaining).
      */
-    public SimpleBackup ignore(String... paths) {
-        ignore(List.of(paths));
+    public SimpleBackup omit(String... paths) {
+        omit(List.of(paths));
         return this;
     }
 
@@ -151,54 +151,68 @@ public class SimpleBackup {
      * @return {@code true} if all files in the list were copied, false otherwise.
      */
     public boolean backupNow(String subDir) {
-        SketchPath subDirPath = new SketchPath(relativize(subDir));
-
+        SketchPath subDirPath;
+        try {
+            subDirPath = makeSketchPath(subDir, false);
+        } catch (IllegalArgumentException e) {
+            warning(e.getMessage());
+            return false;
+        }
+        // Check if there are files to copy
+        Set<SketchPath> filesToCopy = getFilesToCopy();
         if (filesToCopy.isEmpty()) {
             warning("Nothing to copy.");
             return false;
         }
-
         // Check total size of files to copy
         long size = sizeOf(filesToCopy);
         if (size > sizelimit) {
-            warning("Not copying files. Attempting to copy " + size + " bytes. Limit is " + sizelimit + " bytes. Increase the limit with sizelimit(bytes).");
+            warning("Not copying files. Attempting to copy " + size + " bytes. Limit is " + sizelimit + " bytes. Increase the limit with sizelimit (in bytes).");
             return false;
         }
-
         // Create destination directory if it doesn't exist
-        SketchPath dest = new SketchPath(this.dest.relative.resolve(subDirPath.relative));
         if (!Files.exists(dest.absolute)) {
             try {
+                printVerbose("Creating destination directory '" + dest + "'");
                 Files.createDirectories(dest.absolute);
-                printVerbose("No destination directory specified. Using " + dest);
             } catch (IOException e) {
                 e.printStackTrace();
                 return false;
             }
         }
-
+        // Create subdirectory 
+        SketchPath finalDest = new SketchPath(this.dest.relative.resolve(subDirPath.relative));
+        if (!Files.exists(finalDest.absolute)) {
+            try {
+                printVerbose("Creating subdirectory '" + subDirPath + "'");
+                Files.createDirectories(finalDest.absolute);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
         // Copy files
         AtomicInteger copied = new AtomicInteger();
         filesToCopy.forEach(fileFrom -> {
-            SketchPath fileTo = new SketchPath(dest.relative.resolve(fileFrom.relative));
+            SketchPath fileTo = new SketchPath(finalDest.relative.resolve(fileFrom.relative));
             SketchPath dirTo = new SketchPath(fileTo.absolute.getParent());
             
             if (Files.exists(fileTo.absolute)) {
-                warning("File " + fileTo + " already exists. Not copying.");
+                warning("File '" + fileTo + "' already exists. Not copying.");
                 return;
             }
             try {
                 Files.createDirectories(dirTo.absolute);
                 Files.copy(fileFrom.absolute, fileTo.absolute);
-                printVerbose("Copied " + fileFrom + " to " + dirTo);
+                printVerbose("Copied '" + fileFrom);
                 copied.incrementAndGet();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
-
+        // Print summary
         int filesCopied = copied.get();
-        printVerbose("Copied " + filesCopied + " of " + filesToCopy.size() + " files to " + dest);
+        printVerbose("Copied " + filesCopied + " of " + filesToCopy.size() + " files to '" + finalDest + "'");
         return filesCopied < filesToCopy.size() ? false : true;
     }
 
@@ -214,23 +228,36 @@ public class SimpleBackup {
     }
 
     /**
-     * Get the list of relative paths to the files to be copied when calling {@link #backupNow()}.
+     * Get the list of relative paths to the files that will be copied when calling {@link #backupNow()}.
      * This serves as a preview of the files that will be copied.
      * 
-     * @return A list of relative paths to the files to be copied.
+     * @return A list of relative paths of files to be copied.
      */
-    public List<String> getFilesToCopy() {
-        return filesToCopy.stream().map(p -> p.toString()).collect(Collectors.toList());
+    public List<String> getFiles() {
+        return getFilesToCopy().stream().map(p -> p.toString()).collect(Collectors.toList());
     }
 
     /**
-     * Get the list of relative paths to the files to be ignored when calling {@link #backupNow()}.
-     * This serves as a preview of the files that will be ignored.
+     * Get the list of relative paths to the files that will be ignored when calling {@link #backupNow()}.
+     * This serves as a preview of the files that will be omitted.
      * 
-     * @return A list of relative paths to the files to be ignored.
+     * @return A list of relative paths of omitted files.
      */
-    public List<String> getFilesToIgnore() {
-        return filesToIgnore.stream().map(p -> p.toString()).collect(Collectors.toList());
+    public List<String> getOmittedFiles() {
+        return omittedFiles.stream().map(p -> p.toString()).collect(Collectors.toList());
+    }
+
+    /**
+     * Get the list of relative paths to the files that will be ignored when calling {@link #backupNow()}.
+     * Ignored files are files in the destination directory and files in the default ignore list {@link #DEFAULT_IGNORE}.
+     * 
+     * @return A list of relative paths of ignored files.
+     */
+    public List<String> getIgnoredFiles() {
+        Set<SketchPath> ignoredFiles = new HashSet<>(walkedFiles);
+        ignoredFiles.removeAll(getFilesToCopy());
+        ignoredFiles.removeAll(omittedFiles);
+        return ignoredFiles.stream().map(p -> p.toString()).collect(Collectors.toList());
     }
 
     /**
@@ -291,15 +318,18 @@ public class SimpleBackup {
      * @return The total size of the files to be copied in bytes.
      */
     public long getSize() {
-        return sizeOf(filesToCopy);
+        return sizeOf(getFilesToCopy());
     }
 
     /**
-     * Incoming paths must be relative.
+     * Construct a set of files to copy.
      */
-    private Path relativize(String path) {
-        Path p = Path.of(path.trim().replaceAll("\\.\\.", "")).normalize();
-        return p.isAbsolute() ? Path.of(separator).relativize(p) : p;
+    private Set<SketchPath> getFilesToCopy() {
+        Set<SketchPath> filesToCopy = new HashSet<>(walkedFiles);
+        removeFilesFromDestination(filesToCopy);
+        removeDefaultFiles(filesToCopy);
+        filesToCopy.removeAll(omittedFiles);
+        return filesToCopy;
     }
 
     /**
@@ -319,7 +349,7 @@ public class SimpleBackup {
     }
 
     /**
-     * Returns the total size of the files in the given set.
+     * Returns the total size (in bytes) of the files in the given set.
      */
     private long sizeOf(Set<SketchPath> files) {
         return files.stream().mapToLong(path -> path.absolute.toFile().length()).sum();
@@ -330,15 +360,17 @@ public class SimpleBackup {
      */
     private Set<SketchPath> walk(List<String> paths) {
         Set<SketchPath> files = new HashSet<>();
-        
-        for (String path : paths) {
-            SketchPath file = new SketchPath(relativize(path));
 
-            if (!Files.exists(file.absolute)) {
-                warning("Path " + file + " does not exist.");
+        for (String path : paths) {
+            SketchPath file;
+
+            try {
+                file = makeSketchPath(path, true);
+            } catch (IllegalArgumentException e) {
+                warning(e.getMessage());
                 continue;
             }
-            
+
             if (Files.isDirectory(file.absolute)) {
                 try (Stream<Path> stream = Files.walk(file.absolute)) {
                     files.addAll(stream
@@ -356,39 +388,53 @@ public class SimpleBackup {
     }
 
     /**
-     * Removes any files from filesToCopy that are within the destination directory
+     * Removes any files from the set that are within the destination directory.
      */
-    private Set<SketchPath> filterFilesFromDestination(Set<SketchPath> filesToCopy) {
-        filesToCopy.removeIf(fileFrom -> fileFrom.relative.startsWith(dest.relative));
-        return filesToCopy;  
+    private void removeFilesFromDestination(Set<SketchPath> files) {
+        files.removeIf(f -> f.relative.startsWith(dest.relative));
     }
 
     /**
-     * Removes any files from filesToCopy that we don't want to copy.
+     * Removes files from the set that are in the default omit list {@link #DEFAULT_IGNORE}.
      */
-    private Set<SketchPath> filterFilesToIgnore(Set<SketchPath> filesToCopy) {
-        filesToCopy.removeAll(filesToIgnore);
-        return filesToCopy;
+    private void removeDefaultFiles(Set<SketchPath> files) {
+        files.removeIf(file -> DEFAULT_IGNORE.stream().anyMatch(file.relative.toString()::endsWith));
     }
 
     /**
-     * Removes specific files from filesToCopy that we don't want to copy.
+     * Incoming paths must be relative.
      */
-    private Set<SketchPath> filterSpecificFiles(Set<SketchPath> filesToCopy) {
-        filesToCopy.removeIf(file -> file.relative.endsWith(".DS_Store"));  
-        return filesToCopy;
+    private String stripPrecedingSeparator(String path) {
+        return path.replaceAll("^\\" + separator + "+", "");
+    }
+
+    /**
+     * Creates a SketchPath object if the path is within the sketch directory. 
+     */
+    private SketchPath makeSketchPath(String path, boolean checkIfExists) throws IllegalArgumentException {
+        Path p = sketchPath.resolve(stripPrecedingSeparator(path)).normalize();
+        // Incoming paths must be a child of the sketch directory.
+        if (!p.startsWith(sketchPath)) {
+            throw new IllegalArgumentException("Path '" + path + "' is not within the sketch directory.");
+        }
+        if (checkIfExists && !Files.exists(p)) {
+            throw new IllegalArgumentException("Path '" + path + "' does not exist.");
+        }
+        return new SketchPath(p);
     }
 
     /** 
-     * Helper class to store relative and absolute paths to the sketch directory 
+     * Helper class to store relative and absolute paths to the sketch directory.
      */
     private class SketchPath {
-        Path relative;
-        Path absolute;
+        final Path relative, absolute;
         
+        /**
+         * Only use this constructor if the path is guaranteed to exist and to be within the sketch directory.
+         */
         SketchPath(Path path) {
             relative = path.isAbsolute() ? sketchPath.relativize(path) : path;
-            absolute = sketchPath.resolve(relative);
+            absolute = sketchPath.resolve(relative).normalize();
         }
 
         @Override

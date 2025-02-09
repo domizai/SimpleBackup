@@ -6,28 +6,23 @@ void setup() {
   backup = new SimpleBackup(this)
     // Copy everything within the sketch directory (except the backup folder).
     .copy("/")
-    
     // Alternatively, list specific files or directories to copy.
     .copy("advanced.pde", "data", "dir/to/file.ttf")
-
     // Ignore specific files or directories within the copied directories.
     .ignore("data/image.jpg", "dir/to/ignore")
-    
     // Specify the backup folder. Default is "simplebackup".
     .to("backup")
-    
     // Enable or disable verbose mode (default is true).
     .verbose(false)
-
     // Limit the backup size for safety (default is 100_000 bytes).
     .sizelimit(10_000);              
 
-  // Get the list of files and directories which will be copied
-  println(backup.getFilesToCopy());
-
-  // Get the list of files and directories which are ignored
-  println(backup.getFilesToIgnore());
-  
+  // Get a list of files which will be copied.
+  println(backup.getFiles());
+  // Get a list of files which are omitted by the user.
+  println(backup.getOmittedFiles());
+  // Get a list of files which will be ignored (system files and files in the backup folder).
+  println(backup.getIgnoredFiles());
   // Get the size of the backup
   println(backup.getSize() + " bytes");
 }

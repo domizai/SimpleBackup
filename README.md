@@ -27,21 +27,25 @@ void mouseClicked() {
 backup = new SimpleBackup(this)
     // Copy everything within the sketch directory (except the backup folder).
     .copy("/")
-    
     // Alternatively, list specific files or directories to copy.
-    .copy("mySketch.pde", "data", "dir/to/file.ttf")
-    
+    .copy("advanced.pde", "data", "dir/to/file.ttf")
     // Ignore specific files or directories within the copied directories.
     .ignore("data/image.jpg", "dir/to/ignore")
-    
     // Specify the backup folder. Default is "simplebackup".
     .to("backup")
-    
     // Enable or disable verbose mode (default is true).
     .verbose(false)
-
     // Limit the backup size for safety (default is 100_000 bytes).
-    .sizelimit(10_000);
+    .sizelimit(10_000);              
+
+// Get a list of files which will be copied.
+println(backup.getFiles());
+// Get a list of files which are omitted by the user.
+println(backup.getOmittedFiles());
+// Get a list of files which will be ignored (system files and files in the backup folder).
+println(backup.getIgnoredFiles());
+// Get the size of the backup
+println(backup.getSize() + " bytes");
 
 // Finally, back up your project. 
 // This copies the files and directories to a subdirectory within the backup folder.
@@ -56,4 +60,4 @@ Just remember to save your sketch before backing up.
 
 ---
 
-Tested with Processing 4.3.2 (1295) on macOS 14.3.1 (Sonoma) Intel.
+Tested with Processing 4.3.2 (1295) on macOS 14.3.1 (Sonoma) and Windows 10 (21H2).
