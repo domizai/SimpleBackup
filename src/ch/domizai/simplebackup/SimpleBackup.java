@@ -52,7 +52,7 @@ public class SimpleBackup {
     public final static String DEFAULT_DATE_PATTERN = "yyMMddHHmmss";
     /** The default size limit in bytes is {@value #DEFAULT_SIZE_LIMIT} */
     public final static long DEFAULT_SIZE_LIMIT = 100_000; // bytes
-    /** Files that are ignored by default are {@value #DEFAULT_I} */
+    /** Files that are ignored by default */
     public final static Set<String> DEFAULT_IGNORE = Set.of(".DS_Store", ".ini");
 
     private final String separator = FileSystems.getDefault().getSeparator();
