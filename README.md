@@ -2,6 +2,8 @@
 
 Never lose your work. Automatically back up your project with every export. A utility library for Processing.
 
+👉 [Documentation](https://domizai.github.io/SimpleBackup/)
+
 ## Basic Example
 
 ```java
@@ -56,7 +58,7 @@ backup.backupNow();
 backup.backupNow(SimpleBackup.currentDateAndTime("yy-MM-dd_HH-mm-ss"));
 ```
 
-Just remember to save your sketch before backing up.
+**Just remember to save your sketch before backing up.**
 
 ---
 
