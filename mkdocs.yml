@@ -1,6 +1,8 @@
 site_name: SimpleBackup
 
 repo_url: https://github.com/domizai/SimpleBackup
+docs_dir: mkdocs
+site_dir: docs
 
 copyright: MIT Licence. 
 
